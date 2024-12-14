@@ -64,27 +64,49 @@ async function clipboard(elements) {
 	}
 
 	try {
-		// Collect values from all elements
-		let content = "";
+		const clipboardItems = [];
 
 		for (let element of elements) {
-			const value = await element.getValue();
-			if (value) {
-				content += `${value}\n`; // Separate values by newline
+			let value = await element.getValue();
+			const valueType = element.getAttribute("clipboard-value-type");
+			if (valueType === "innerText") {
+				value = value.replace(/<[^>]*>/g, "");
+				new ClipboardItem({
+					"text/plain": new Blob([value], {
+						type: "text/plain"
+					})
+				});
+			} else if (typeof value === "string") {
+				// Handle string content as plain text
+				clipboardItems.push(
+					new ClipboardItem({
+						"text/plain": new Blob([value], { type: "text/plain" }),
+						"text/html": new Blob([value], {
+							type: "text/html"
+						}) // Render as code block in rich editors
+					})
+				);
+			} else if (value instanceof Blob) {
+				// Handle Blob content directly
+				clipboardItems.push(
+					new ClipboardItem({
+						[value.type]: value
+					})
+				);
+			} else {
+				console.warn("Unsupported value type for clipboard:", value);
 			}
 		}
 
-		// Remove trailing newline
-		content = content.trim();
-
-		// Copy to clipboard
-		await navigator.clipboard.writeText(content);
-
-		console.log("Copied to clipboard:", content);
+		if (clipboardItems.length > 0) {
+			await navigator.clipboard.write(clipboardItems);
+		} else {
+			console.warn("No valid content to copy to clipboard.");
+		}
 
 		document.dispatchEvent(
 			new CustomEvent("clipboarded", {
-				detail: { content }
+				detail: { clipboardItems }
 			})
 		);
 	} catch (error) {
