@@ -10,27 +10,21 @@ import { queryElements } from "@cocreate/utils";
 import Actions from "@cocreate/actions";
 import Observer from "@cocreate/observer";
 
-const selector =
-	"[clipboard-selector], [clipboard-closest], [clipboard-parent], [clipboard-next], [clipboard-previous]";
+const selector = "[clipboard-query]";
 
 function init(element) {
 	if (!element) {
 		element = document.querySelectorAll(selector);
-		for (let i = 0; i < element.length; i++) {
+	} else if (
+		!(element instanceof HTMLCollection) &&
+		!(element instanceof NodeList) &&
+		!Array.isArray(element)
+	) {
+		element = [element];
+	}
+	for (let i = 0; i < element.length; i++) {
+		if (element[i].matches(selector)) {
 			initElement(element[i]);
-		}
-	} else {
-		if (
-			!(element instanceof HTMLCollection) &&
-			!(element instanceof NodeList) &&
-			!Array.isArray(element)
-		) {
-			element = [element];
-		}
-		for (let i = 0; i < element.length; i++) {
-			if (element[i].matches(selector)) {
-				initElement(element[i]);
-			}
 		}
 	}
 }
@@ -46,14 +40,17 @@ function initElement(element) {
 }
 
 function queryClipboardElement(element) {
-	let elements = queryElements({ element, prefix: "clipboard" });
-	if (elements === false) {
+	let elements = [];
+	if (element.hasAttribute("clipboard-query")) {
+		elements = queryElements({ element, prefix: "clipboard" });
+	} else {
 		elements = [element];
 	}
-	clipboard(elements);
+
+	clipboard(element, elements);
 }
 
-async function clipboard(elements) {
+async function clipboard(element, elements) {
 	if (!elements) return;
 	if (
 		!(elements instanceof HTMLCollection) &&
@@ -104,7 +101,7 @@ async function clipboard(elements) {
 			console.warn("No valid content to copy to clipboard.");
 		}
 
-		document.dispatchEvent(
+		element.dispatchEvent(
 			new CustomEvent("clipboarded", {
 				detail: { clipboardItems }
 			})
@@ -121,14 +118,14 @@ Actions.init([
 		name: "clipboard",
 		endEvent: "clipboarded",
 		callback: (action) => {
-			queryClipboardElement(action.element);
+			queryClipboardElement(action);
 		}
 	}
 ]);
 
 Observer.init({
 	name: "CoCreateClipboardAddedNodes",
-	observe: ["addedNodes"],
+	types: ["addedNodes"],
 	selector,
 	callback(mutation) {
 		initElement(mutation.target);
@@ -137,14 +134,8 @@ Observer.init({
 
 Observer.init({
 	name: "CoCreateClipboardObserver",
-	observe: ["attributes"],
-	attributeName: [
-		"clipboard-selector",
-		"clipboard-closest",
-		"clipboard-parent",
-		"clipboard-next",
-		"clipboard-previous"
-	],
+	types: ["attributes"],
+	attributeFilter: ["clipboard-query"],
 	selector,
 	callback: function (mutation) {
 		initElement(mutation.target);
