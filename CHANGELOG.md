@@ -1,3 +1,10 @@
+## [1.1.1](https://github.com/CoCreate-app/CoCreate-clipboard/compare/v1.1.0...v1.1.1) (2026-01-18)
+
+
+### Bug Fixes
+
+* update worklow ([c54f11a](https://github.com/CoCreate-app/CoCreate-clipboard/commit/c54f11a9df499522afc5805d99538099d7314704))
+
 # [1.1.0](https://github.com/CoCreate-app/CoCreate-clipboard/compare/v1.0.0...v1.1.0) (2025-05-01)
 
 
